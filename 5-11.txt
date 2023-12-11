@@ -1,0 +1,247 @@
+Practical 5
+# Load required packages
+install.packages('arules')
+install.packages('arulesViz')
+install.packages('RColorBrewer')
+
+library(arules)
+library(arulesViz)
+library(RColorBrewer)
+
+# Load the Groceries dataset and explore it
+data("Groceries")
+str(Groceries)
+inspect(head(Groceries, 2))
+Groceries@itemInfo$labels
+
+# Apriori analysis on the Groceries dataset
+grocery_rules <- apriori(Groceries, parameter = list(supp = 0.01, conf = 0.2))
+inspect(grocery_rules[1:10])
+inspect(head(sort(grocery_rules, by = 'confidence'), 3))
+inspect(tail(sort(grocery_rules, by = 'confidence'), 3))
+
+# Apriori analysis for "whole milk" rules
+wholemilk_rules <- apriori(data = Groceries, parameter = list(supp = 0.001, conf = 0.08), appearance = list(rhs = 'whole milk'))
+inspect(head(sort(wholemilk_rules, by = 'confidence'), 3))
+
+# Apriori analysis with increased support and confidence
+grocery_rules_increased_support <- apriori(Groceries, parameter = list(support = 0.02, confidence = 0.5))
+inspect(head(sort(grocery_rules_increased_support, by = 'confidence'), 3))
+
+# Item Frequency Plot for Groceries dataset
+itemFrequencyPlot(Groceries, topN = 20, type = "absolute", col = brewer.pal(8, 'Pastel2'), main = "Absolute Item Frequency Plot")
+
+
+Practical 6
+
+library(arules)
+library(arulesViz)
+library(RColorBrewer)
+data<-read.transactions('C:/Users/ankus/OneDrive/Documents/supermarket_sales - Sheet1.csv', rm.duplicates= TRUE, format="single",sep=",",header = TRUE,cols=c("City","Product line"))
+str(data)
+inspect(head(data))
+data@itemInfo$labels
+data_rules <- apriori(data, parameter = list(supp = 0.01, conf = 0.2))
+data_rules
+inspect(data_rules[1:20])
+inspect(head(sort(data_rules, by = "confidence"), 10))
+inspect(tail(sort(data_rules, by = "confidence"), 10))
+fashion_rules <- apriori(data=data, parameter=list (supp=0.001,conf =  0.08), appearance = list (rhs="Fashion accessories"))
+inspect(head(sort(fashion_rules, by = "confidence"), 10))
+fashion_rules_increased_support <- apriori(data, parameter = list(support =0.02, confidence = 0.5))
+inspect(head(sort(fashion_rules_increased_support, by = "confidence"), 10))
+itemFrequencyPlot(data,topN=20,type="absolute",col=brewer.pal(8,'Pastel2'), main="Absolute Item Frequency Plot")
+
+
+Practical 7
+vector_dict = {"A": [0, 1, 1, 0],
+               "B": [0, 0, 0, 0],
+               "C": [0, 1, 0, 1],
+               "D": [1, 0, 0, 0]}
+df = 0.85
+PageRank = {"A": 1, "B": 1, "C": 1, "D": 1}
+columns = {"A": 0, "B": 1, "C": 2, "D": 3}
+
+
+def connections(page):
+    column = columns[page]
+    incomings = []
+    for i in vector_dict.keys():
+        for connections in range(len(vector_dict[i])):
+            if connections == column and vector_dict[i][connections] == 1:
+                incomings.append(i)
+    return incomings
+
+
+def outDegree(node):
+    count = 0
+    for i in vector_dict[node]:
+        if i == 1:
+            count += 1
+    return count
+
+
+for iteration in range(3):
+    for i in PageRank.keys():
+        factor = 0
+        incoming_nodes = connections(i)
+        for node in incoming_nodes:
+            factor += PageRank[node] / outDegree(node)
+        PageRank[i] = (1 - df) / 4 + df * factor
+
+    print("Iteration", iteration + 1, ":", PageRank)
+
+
+Practical 8
+# Install and load required packages
+install.packages(c("tm", "topicmodels"))
+library(tm)
+library(topicmodels)
+
+# Sample documents
+documents <- c(
+  "Understanding the fundamentals of topic modeling in R and its applications.",
+  "Exploring techniques to uncover hidden topics in a diverse collection of documents.",
+  "A deep dive into Latent Dirichlet Allocation (LDA) for advanced topic analysis.",
+  "R, a versatile and powerful language for comprehensive data analysis and visualization.",
+  "Enhancing topic modeling results by carefully curating and removing irrelevant stop words."
+)
+
+# Preprocess the data
+corpus <- Corpus(VectorSource(documents))
+corpus <- tm_map(corpus, content_transformer(tolower))
+corpus <- tm_map(corpus, removePunctuation)
+corpus <- tm_map(corpus, removeNumbers)
+corpus <- tm_map(corpus, removeWords, stopwords("en"))
+corpus <- tm_map(corpus, stripWhitespace)
+
+# Create a document-term matrix
+dtm <- DocumentTermMatrix(corpus)
+
+# Build an LDA model with two topics
+lda_model <- LDA(dtm, k = 2)
+
+# Extract topic proportions from the LDA model
+topics <- as.data.frame(topics(lda_model)$topics)
+
+# Rename the columns
+colnames(topics) <- c("Topic 1", "Topic 2")
+
+# Visualize topics using a bar plot
+barplot(t(topics), beside = TRUE, col = c("skyblue", "salmon"),
+        main = "Topic Distribution in Documents",
+        xlab = "Documents", ylab = "Topic Probability")
+
+# Add legend
+legend("topright", legend = colnames(topics), fill = c("skyblue", "salmon"),
+       title = "Topics")
+
+Practical 9
+library(textreuse)
+minhash <- minhash_generator(n = 240, seed = 3552)
+head(minhash(c("turn tokens into", "tokens into hashes", "into hashes fast")))
+dir <- system.file("extdata/ats", package = "textreuse")
+corpus <- TextReuseCorpus(dir = dir, tokenizer = tokenize_ngrams, n = 5,
+                          minhash_func = minhash, keep_tokens = TRUE,
+                          progress = FALSE)
+head(minhashes(corpus[[1]]))
+length(minhashes(corpus[[1]]))
+lsh_threshold(h = 200, b = 50)
+lsh_threshold(h = 240, b = 80)
+lsh_probability(h = 240, b = 80, s = 0.25)
+lsh_probability(h = 240, b =  80, s = 0.75)
+buckets <- lsh(corpus, bands = 80, progress = FALSE)
+buckets
+
+baxter_matches <- lsh_query(buckets, "calltounconv00baxt")
+baxter_matches
+candidates <- lsh_candidates(buckets)
+candidates
+lsh_compare(candidates, corpus, jaccard_similarity, progress = FALSE)
+
+
+Practical 10
+readinteger <- function() {
+  n <- as.integer(readline(prompt = "Enter value of k-1: "))
+  # Check if the file exists
+  file_path <- "C:/Users/ankus/OneDrive/Desktop/asidhsidbjsadujuabcjasbudasuvcvashs.txt"
+  if (!file.exists(file_path)) {
+    print("Error: File not found.")
+    return(NULL)
+  }
+  # Read the file using a connection
+  con <- file(file_path, open = "r")
+  lines <- character(0)
+  # Read lines and handle incomplete lines
+  while (length(line <- readLines(con, n = 1)) > 0) {
+    # Check for incomplete lines and skip them
+    if (length(line) > 0) {
+      lines <- c(lines, line)
+    }
+  }
+  close(con) # Close the file connection
+  if (length(lines) == 0) {
+    print("Error: The file is empty.")
+    return(NULL)
+  }
+  Shingle <- c()
+  for (i in 1:(length(lines) - n + 1)) {
+    Shingle <- append(Shingle, substr(lines, start = i, stop = i + n - 1))
+  }
+  print(Shingle)
+}
+
+# Call the function
+readinteger()
+
+
+practical 11
+package wc;
+
+import java.io.IOException;
+import java.util.*;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapred.*;
+
+public class wcclass {
+    public static class Map extends MapReduceBase implements Mapper<LongWritable, Text, Text, IntWritable> {
+        private final static IntWritable one = new IntWritable(1);
+        private Text word = new Text();
+
+        public void map(LongWritable key, Text value, OutputCollector<Text, IntWritable> output, Reporter reporter) throws IOException {
+            String line = value.toString();
+            StringTokenizer tokenizer = new StringTokenizer(line);
+            while (tokenizer.hasMoreTokens()) {
+                word.set(tokenizer.nextToken());
+                output.collect(word, one);
+            }
+        }
+    }
+
+    public static class Reduce extends MapReduceBase implements Reducer<Text, IntWritable, Text, IntWritable> {
+        public void reduce(Text key, Iterator<IntWritable> values, OutputCollector<Text, IntWritable> output, Reporter reporter) throws IOException {
+            int sum = 0;
+            while (values.hasNext()) {
+                sum += values.next().get();
+            }
+            output.collect(key, new IntWritable(sum));
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        JobConf conf = new JobConf(wcclass.class);
+        conf.setJobName("wordcount");
+        conf.setOutputKeyClass(Text.class);
+        conf.setOutputValueClass(IntWritable.class);
+        conf.setMapperClass(Map.class);
+        conf.setCombinerClass(Reduce.class);
+        conf.setReducerClass(Reduce.class);
+        conf.setInputFormat(TextInputFormat.class);
+        conf.setOutputFormat(TextOutputFormat.class);
+        FileInputFormat.setInputPaths(conf, new Path(args[0]));
+        FileOutputFormat.setOutputPath(conf, new Path(args[1]));
+        JobClient.runJob(conf);
+    }
+}
+
